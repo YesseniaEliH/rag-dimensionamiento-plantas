@@ -1,0 +1,112 @@
+{
+  "name": "RAG Plantas - 03 Descargar Excel",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "descargar-excel",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b5000000-0000-4000-8000-000000000001",
+      "name": "Webhook descarga",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "3c9d6a10-5e7b-4f21-9a8e-2d4c6b8f1e07"
+    },
+    {
+      "parameters": {
+        "jsCode": "const archivo = String(($json.query || {}).archivo || '');\nif (!/^[A-Za-z0-9_\\-]+\\.xlsx$/.test(archivo)) throw new Error('Nombre de archivo no válido');\nreturn [{ json: { archivo, ruta: 'C:/Users/Usuario/Documents/PROYECTOS/DIMENSIONAMIENTO DE PLANTAS/RAG/salidas/' + archivo } }];"
+      },
+      "id": "b5000000-0000-4000-8000-000000000002",
+      "name": "Validar nombre",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "fileSelector": "={{ $json.ruta }}",
+        "options": {}
+      },
+      "id": "b5000000-0000-4000-8000-000000000003",
+      "name": "Leer archivo",
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Disposition",
+                "value": "=attachment; filename=\"{{ $('Validar nombre').item.json.archivo }}\""
+              }
+            ]
+          }
+        }
+      },
+      "id": "b5000000-0000-4000-8000-000000000004",
+      "name": "Enviar archivo",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook descarga": {
+      "main": [
+        [
+          {
+            "node": "Validar nombre",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar nombre": {
+      "main": [
+        [
+          {
+            "node": "Leer archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer archivo": {
+      "main": [
+        [
+          {
+            "node": "Enviar archivo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,22 @@
+Guarda el siguiente texto como un artefacto del proyecto con el nombre 
+"Plantilla de dimensionamiento de plantas":
+
+---
+Quiero diseñar una planta de tratamiento de [TIPO: aguas residuales 
+domésticas / agua potable con UF / agua potable con OI].
+
+Datos iniciales:
+- Caudal de diseño: [X] m³/día
+- Población beneficiada: [X] habitantes
+- Tipo de efluente/fuente: [doméstico / industrial / agua superficial 
+  / agua subterránea]
+- Ubicación del proyecto: [ciudad, región, país]
+- Altitud: [X] msnm
+- Temperatura promedio del agua: [X] °C
+- Normativa de descarga o calidad aplicable: [decreto o reglamento]
+- Destino del efluente tratado: [río, riego, reúso, disposición]
+
+Instrucción: solicítame los parámetros faltantes uno por uno, en orden 
+lógico de diseño, indicando el valor típico recomendado por el manual 
+como referencia en cada pregunta.
+---

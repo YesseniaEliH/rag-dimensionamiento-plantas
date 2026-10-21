@@ -1,0 +1,4 @@
+M1_vol1  chunks= 1158  páginas= 497  chars_prom= 1117  sin_capítulo=0  sin_pág_libro=0  -> M1_vol1.json
+M1_vol2  chunks= 2089  páginas= 887  chars_prom= 1117  sin_capítulo=0  sin_pág_libro=0  -> M1_vol2.json
+M2_UF    chunks= 1117  páginas= 525  chars_prom= 1088  sin_capítulo=0  sin_pág_libro=2  -> M2_UF.json
+M3_RO    chunks=  635  páginas= 359  chars_prom= 1080  sin_capítulo=0  sin_pág_libro=0  -> M3_RO.json

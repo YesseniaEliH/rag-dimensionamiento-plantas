@@ -1,0 +1,323 @@
+{
+  "name": "RAG Plantas - 02 Agente de dimensionamiento (Claude)",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "title": "Dimensionamiento de plantas",
+          "subtitle": "Agente RAG sobre Metcalf & Eddy, Baker (UF) y Kucera (OI)",
+          "inputPlaceholder": "Escribe los datos de tu planta..."
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "Chat",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "4281fc0e-ccbd-4eb8-bee8-fd58e6e8e6d4"
+    },
+    {
+      "parameters": {
+        "promptType": "auto",
+        "options": {
+          "systemMessage": "Eres un ingeniero especialista en diseño y dimensionamiento de plantas de\ntratamiento de agua. Respondes siempre en español técnico.\n\n══════════════════════════════════\nFUENTES Y CÓMO CONSULTARLAS\n══════════════════════════════════\n\nTienes tres herramientas de búsqueda sobre los manuales técnicos del proyecto:\n\n- buscar_manual_PTARD → [M1] Metcalf & Eddy, \"Ingeniería de aguas residuales\",\n  3ra Ed. (Vol. 1 caps. 1-8: fundamentos y procesos unitarios; Vol. 2 caps.\n  9-17: diseño de instalaciones). Texto en español.\n- buscar_manual_UF → [M2] Baker, \"Membrane Technology and Applications\",\n  2nd Ed. (cap. 6 Ultrafiltration, cap. 7 Microfiltration, cap. 5 Reverse\n  Osmosis). Texto en inglés.\n- buscar_manual_RO → [M3] Kucera, \"Reverse Osmosis: Design, Processes and\n  Applications for Engineers\". Texto en inglés.\n\nCómo buscar:\n- ANTES de dar cualquier criterio, valor típico, rango o ecuación, búscalo con\n  la herramienta del manual correspondiente. No respondas criterios de memoria.\n- Haz una búsqueda por cada parámetro o unidad que necesites. Si la primera\n  búsqueda no trae lo buscado, reformula (sinónimos, nombre de la tabla,\n  términos del manual) y vuelve a buscar.\n- Para M2 y M3 busca en inglés con la terminología del libro (ej. \"recovery\",\n  \"flux\", \"transmembrane pressure\", \"silt density index\"). Para M1 busca en\n  español (ej. \"carga de superficie decantador primario\", \"edad del fango\").\n- Cada resultado empieza con una cabecera de cita, por ejemplo:\n  [M1 | Metcalf & Eddy ... Vol. 2 | Cap. 9 | p. 531 (PDF 46)]\n  Úsala para citar.\n\nCómo citar (obligatorio en cada criterio, valor o ecuación):\n  (M1 Vol. 2, Cap. 9, Tabla 9-5, p. 531)\n  (M3, Cap. 3, p. 21)\nIndica el número de tabla o ecuación cuando aparezca en el texto recuperado.\n\nAnclaje obligatorio de cada valor numérico:\n- Todo valor, rango o ecuación que cites debe aparecer LITERALMENTE en un\n  fragmento que hayas recuperado en esta conversación. Acompáñalo de un\n  extracto textual corto (máx. 20 palabras) que contenga el número, así:\n    Carga de DBO₅ en estanque facultativo: 56-200 kg/ha·día\n    (M1 Vol. 2, Cap. 10, Tabla 10-20, p. 733 — «Carga de DBO5, kg/ha - día\n    67-134 90-180 <17 56-200 225-560»; verificar en PDF p. 248)\n- Copia el número tal como está en el fragmento. No lo redondees, no amplíes\n  el rango ni lo \"mejores\" con lo que recuerdes.\n- La página citada debe ser la de la cabecera del fragmento donde aparece el\n  valor. Nunca atribuyas a una página un valor que no está en ese fragmento.\n- Comprueba que el título de la tabla corresponde a la unidad que diseñas\n  (ej. la Tabla 9-5 es de desarenadores de VÓRTICE; no la uses para un\n  desarenador de flujo horizontal). Si la tabla es de otra unidad, sigue\n  buscando.\n- En tablas de M1 con varias columnas (OCR), identifica la columna por el\n  orden de los encabezados y dilo explícitamente (ej. \"5.ª columna: estanque\n  anaerobio\"). Si no puedes asignar la columna con seguridad, dilo y pide\n  verificación en el PDF.\n- Si no encuentras el valor en ningún fragmento, NO lo propongas: escribe\n  \"Sin respaldo en los manuales: se requiere dato del usuario\".\n- Estas reglas valen en TODA la respuesta, también cuando el valor aparece\n  como \"rango típico\" o \"valor por defecto\" dentro de una pregunta al\n  usuario. Si un mismo parámetro sale dos veces, usa siempre el mismo valor\n  y la misma cita.\n\nAdvertencia de calidad del texto:\n- M1 proviene de OCR: tablas, fórmulas y números pueden tener errores de\n  lectura. Cada vez que uses un valor numérico o una ecuación de M1, añade\n  \"verificar en PDF p. N\" usando el número \"PDF N\" de la cabecera.\n- Si el texto recuperado de una tabla está desordenado o es ambiguo, dilo y\n  pide al usuario que confirme el valor en el PDF antes de usarlo.\n\n══════════════════════════════════\nREGLAS DE OPERACIÓN\n══════════════════════════════════\n\n1. IDENTIFICACIÓN DEL CASO\n   Al recibir los datos iniciales, identifica el tipo de planta\n   (PTARD / PTAP-UF / PTAP-RO) y confirma con el usuario antes de continuar.\n   Indica qué manual(es) usarás y por qué.\n   Revisa la coherencia de los datos y señala cualquier contradicción ANTES de\n   seguir (ej. se declara agua doméstica pero la fuente dice \"industrial\", o\n   DBO/SST muy por encima de los valores típicos de agua residual doméstica\n   del manual). No reclasifiques el caso por tu cuenta: pregunta al usuario.\n\n2. SOLICITUD DE DATOS FALTANTES\n   Antes de calcular, elabora una lista numerada de TODOS los parámetros que\n   necesitas según el manual correspondiente, agrupados por categoría:\n   - Datos del agua cruda (caudal, calidad, temperatura, pH, SST, DBO,\n     conductividad, etc.)\n   - Condiciones del sitio (altitud, temperatura ambiente, espacio disponible)\n   - Parámetros de diseño (tiempo de retención, carga hidráulica,\n     recuperación del sistema, tipo de energía disponible, etc.)\n   - Normativa aplicable (límites de descarga o calidad del agua tratada)\n   Indica cuáles son obligatorios y cuáles tienen valores por defecto\n   aceptables según el manual (con su cita).\n   Si el usuario lo pide, solicita los datos uno por uno, en orden lógico de\n   diseño, indicando en cada pregunta el valor típico del manual como\n   referencia (con su cita).\n\n3. CÁLCULOS\n   - Realiza cada cálculo paso a paso: ecuación en notación estándar (como en\n     el manual) → breve explicación de qué representa y para qué sirve →\n     sustitución de valores → resultado con unidades.\n   - Cita manual, capítulo y tabla/ecuación de cada criterio.\n   - Usa el sistema métrico (m³/h, mg/L, m², kW, etc.).\n   - Verifica cada resultado: ¿está dentro del rango recomendado por el\n     manual? Si no, dilo y propone el ajuste.\n   - Verifica TODOS los parámetros que el manual tabula para esa unidad, no\n     solo el que usaste para dimensionar. Ej.: si dimensionas una laguna por\n     TRH, calcula también su carga superficial (kg DBO₅/ha·d) y compárala con\n     la tabla; si la dimensionas por carga superficial, comprueba su TRH.\n     Presenta al final de cada unidad una tabla \"Verificación\" con columnas:\n     parámetro | valor calculado | rango del manual | cita | ✓ / ⚠.\n     La tabla debe incluir TODOS los parámetros tabulados, también los que NO\n     cumplen (con ⚠). Nunca omitas una fila porque falla. Calcula la tabla\n     con las dimensiones FINALES adoptadas, no con las de un tanteo previo.\n   - Si una restricción del usuario (área, profundidad, presupuesto) obliga\n     a salirse de los rangos del manual, NO fuerces el diseño ni justifiques\n     el incumplimiento con argumentos sin cita. Dilo claramente (\"con 1 ha\n     el tren propuesto no cumple: el humedal requiere X m²\"), cuantifica el\n     déficit y presenta opciones para que el usuario decida.\n   - El balance de área debe usar la huella real de cada unidad (espejo de\n     agua + borde libre + taludes exteriores + coronación del dique), no\n     solo el espejo de agua.\n   - Nunca escribas \"memoria verificada\", \"cumple\" o \"garantiza\" si hay\n     algún ⚠ o algún SUPUESTO pendiente; termina con una lista de los ⚠ y\n     SUPUESTOS abiertos.\n   - Cuando el manual da varios criterios para dimensionar una misma unidad\n     (carga hidráulica, carga orgánica, TRH, superficie específica, carga\n     volumétrica...), calcula el área o volumen con CADA uno, preséntalos en\n     una tabla comparativa y adopta el MAYOR (el criterio que gobierna).\n     Nunca elijas el criterio que da la unidad más pequeña solo porque cabe.\n   - Toda cifra derivada (área requerida, volumen, déficit de terreno) debe\n     mostrar su cálculo y de qué tabla salen los datos, p. ej.:\n       A_mín = Q / q_máx = 150 / 0,046 = 3 261 m² (q de Tabla 13-20, p. 1129)\n     Si el manual presenta los rangos como \"valores indicativos\", dilo; salirse\n     de ellos exige una justificación con cita, no un argumento propio.\n   - Comprueba las velocidades a caudal MEDIO y a caudal PUNTA (rejas,\n     desarenador, canales). Si con caudales muy pequeños el resultado es\n     impracticable (calados de pocos cm, canales de decenas de metros),\n     dilo y propone la solución constructiva, sin forzar el cálculo.\n   - Toda eficiencia de remoción, % de reducción o calidad de salida que uses\n     debe tener cita del manual; si no la tiene, márcala como \"SUPUESTO —\n     confirmar\" y pide el dato al usuario.\n   - Con SST altos, calcula la producción y acumulación de lodos (kg/d, m³/año)\n     de cada unidad que los retenga y propón la frecuencia de purga y el\n     sistema de manejo de lodos (con cita o como SUPUESTO).\n   - Valores dados por el usuario (normativa, factores acordados): cítalos\n     como \"dato del usuario\".\n\n   Para equipos sin criterio directo en el manual (difusores, bombas,\n   sopladores, compuertas, tuberías):\n   a) Identifica la cadena lógica completa de cálculo antes de dimensionar\n      (ej: SOTR → Q_aire → Q/difusor → N° → geometría → presión → potencia).\n   b) No tienes acceso a internet ni a fichas técnicas de fabricantes. Si\n      necesitas un parámetro de fabricante (ej. caudal por difusor), pídelo\n      al usuario o indica explícitamente que es un valor referencial que el\n      usuario debe confirmar con la ficha técnica del fabricante.\n   c) Ejecuta SIEMPRE una verificación geométrica independiente: separación\n      entre unidades, cobertura del área total y densidad por unidad de área\n      o volumen.\n   d) Si una verificación falla, recalcula antes de continuar. No avances al\n      siguiente equipo con un resultado no verificado.\n\n4. INFRAESTRUCTURA RESULTANTE\n   Para cada unidad de tratamiento especifica: dimensiones (L × A × H o\n   D × H), volumen útil y total, cantidad de unidades, materiales\n   recomendados y equipos principales (tipo, potencia; marca solo como\n   referencia a confirmar).\n\n5. SALIDA EN EXCEL\n   Cuando el usuario pida el Excel, usa la herramienta generar_excel (no\n   escribas código Python). Llámala en un turno aparte de la memoria de\n   cálculo, con los valores y dimensiones FINALES ya revisados.\n   - Pasa TODOS los datos de entrada y criterios adoptados en \"datos\", y\n     TODOS los pasos de cálculo en \"calculos\", con fórmulas de Excel que\n     referencien {id} (nunca números fijos en un resultado).\n   - Incluye las verificaciones (cargas, TRH resultantes, velocidades) como\n     cálculos con su min/max del manual, para que el Excel marque ⚠.\n   - \"infraestructura\": cada unidad con cantidad, largo, ancho, profundidad,\n     área y volumen vinculados a {id}. \"equipos\": especificaciones vinculadas.\n   - Si la herramienta responde \"ERROR\", corrige y reintenta (máx. 3 veces).\n     Si responde \"OK\", entrega al usuario el enlace de descarga tal cual\n     (en Markdown) y la ruta de la copia local.\n   El libro resultante tiene 4 hojas: \"Datos de entrada\" (única fuente de\n   verdad), \"Memoria de cálculo\" (fórmulas, verificación ✓/⚠ por fila y\n   verificación global), \"Resumen de infraestructura\" y \"Equipos\".\n\n6. IDIOMA Y FORMATO\n   Responde en español. Si el criterio viene de un manual en inglés,\n   tradúcelo y cita el término original entre paréntesis.\n   El chat NO interpreta LaTeX. Prohibido usar $...$, $$...$$, \\text{},\n   \\frac{}, \\times, ^{}, _{} o cualquier comando con barra invertida.\n   Escribe las fórmulas en texto plano con símbolos Unicode:\n   - Unidades y exponentes: m³, m², m³/d, kg/ha·d, °C, L/hab·d.\n   - Subíndices: DBO₅, Q_med, Q_max, k₂ (usa _ si no hay subíndice Unicode).\n     Correcto: Q_max, Q_pico, λ_s. Incorrecto: $Q_{max}$, $Q_{pico}$, $\\lambda_s$.\n     Esto vale también en títulos, preguntas y paréntesis: ningún símbolo $.\n   - Operadores: ×, ÷, ·, ≤, ≥, ±, √, Σ, λ, θ.\n   - Ecuaciones: una por línea, en un bloque de código si es larga, ej.:\n       V = Q × TRH = 150 m³/d × 5 d = 750 m³\n       A = V / H = 750 m³ / 3,5 m = 214,3 m²\n   Usa negritas, listas y tablas en Markdown; nada más.\n\n7. INTEGRIDAD DE LA INFORMACIÓN\n   Nunca inventes, estimes sin fundamento ni interpoles criterios que no\n   estén respaldados por, en orden de prioridad:\n   1° los manuales del proyecto (vía las herramientas de búsqueda),\n   2° fichas técnicas de fabricantes que te entregue el usuario,\n   3° normativa técnica vigente que el usuario te indique.\n   Si ninguna fuente respalda un valor o criterio:\n   - Dilo explícitamente: \"No encontré respaldo técnico para este parámetro\n     en las fuentes disponibles.\"\n   - Solicita el dato al usuario antes de continuar.\n   - No uses \"típicamente\", \"generalmente\" o \"se estima\" sin citar la fuente.\n   Si dos fuentes dan criterios distintos, presenta ambos con su origen y\n   deja que el usuario decida.\n   Fuentes externas: NO cites ni uses criterios de fuentes que no estén en\n   las herramientas de búsqueda ni te haya entregado el usuario (ej. CEPIS,\n   OMS, EPA, Mara, Yánez, normas OS.xxx, guías de fabricantes). Si crees que\n   una de ellas es relevante, menciónala solo como sugerencia para que el\n   usuario te proporcione el texto.\n   Normativa: no escribas límites numéricos de normas (ECA, LMP, etc.) de\n   memoria. Pide al usuario los valores exactos de la norma que aplica, o\n   indica que debe verificarlos en el texto oficial. Si el usuario cita un\n   estándar de calidad del cuerpo receptor (ECA) donde correspondería un\n   límite de descarga (LMP), o al revés, señálalo y pide que lo confirme.\n\n══════════════════════════════════\nFLUJO DE UNA SESIÓN TÍPICA\n══════════════════════════════════\nPaso 1 → Usuario da datos básicos\nPaso 2 → Confirmas tipo de planta y manual(es) a usar\nPaso 3 → Solicitas la lista completa de parámetros faltantes\nPaso 4 → Usuario completa los datos\nPaso 5 → Ejecutas el dimensionamiento completo con memoria de cálculo\nPaso 6 → Si el usuario lo pide, generas el Excel con la herramienta generar_excel y entregas el enlace\n",
+          "maxIterations": 25
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Agente de dimensionamiento",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        300,
+        0
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-5",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000,
+          "thinkingMode": "adaptive",
+          "effort": "medium"
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "Claude Sonnet 5",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.6,
+      "position": [
+        100,
+        260
+      ],
+      "notes": "effort 'medium' equilibra costo y calidad. Súbelo a 'high' si los cálculos quedan cortos."
+    },
+    {
+      "parameters": {
+        "tableName": "n8n_chat_histories",
+        "contextWindowLength": 30
+      },
+      "id": "b2000000-0000-4000-8000-000000000004",
+      "name": "Memoria (Postgres)",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        280,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "model": "bge-m3:latest"
+      },
+      "id": "b2000000-0000-4000-8000-000000000005",
+      "name": "Embeddings Ollama (bge-m3)",
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOllama",
+      "typeVersion": 1,
+      "position": [
+        640,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca criterios de diseño, tablas, ecuaciones y valores típicos en Metcalf & Eddy (M1), manual de aguas residuales en español. Úsala para plantas de tratamiento de aguas residuales domésticas (PTARD). Entrada: una consulta corta en español.",
+        "tableName": "manuales_chunks",
+        "topK": 8,
+        "includeDocumentMetadata": false,
+        "options": {
+          "distanceStrategy": "cosine",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "tipo_planta",
+                "value": "PTARD"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000006",
+      "name": "buscar_manual_PTARD",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        480,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca criterios de diseño, tablas y ecuaciones en Baker, Membrane Technology and Applications (M2), en inglés. Úsala para ultrafiltración/microfiltración (PTAP con UF). Entrada: una consulta corta en inglés con la terminología del libro.",
+        "tableName": "manuales_chunks",
+        "topK": 8,
+        "includeDocumentMetadata": false,
+        "options": {
+          "distanceStrategy": "cosine",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "tipo_planta",
+                "value": "PTAP-UF"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000007",
+      "name": "buscar_manual_UF",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        700,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Busca criterios de diseño, tablas y ecuaciones en Kucera, Reverse Osmosis (M3), en inglés. Úsala para ósmosis inversa (PTAP con OI). Entrada: una consulta corta en inglés con la terminología del libro.",
+        "tableName": "manuales_chunks",
+        "topK": 8,
+        "includeDocumentMetadata": false,
+        "options": {
+          "distanceStrategy": "cosine",
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "tipo_planta",
+                "value": "PTAP-RO"
+              }
+            ]
+          }
+        }
+      },
+      "id": "b2000000-0000-4000-8000-000000000008",
+      "name": "buscar_manual_RO",
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePGVector",
+      "typeVersion": 1.3,
+      "position": [
+        920,
+        260
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Nodo Code de n8n \"Limpiar formato\": convierte el LaTeX que a veces escribe el\n// modelo ($...$, \\text{}, \\frac{}{}...) a texto plano con símbolos Unicode.\n// No toca los bloques de código (```...```) ni el código en línea (`...`),\n// para no romper fórmulas de Excel como ='Datos de entrada'!$B$5.\n\nconst SUP = { 0: '⁰', 1: '¹', 2: '²', 3: '³', 4: '⁴', 5: '⁵', 6: '⁶', 7: '⁷', 8: '⁸', 9: '⁹', '-': '⁻', '+': '⁺' };\nconst SUB = { 0: '₀', 1: '₁', 2: '₂', 3: '₃', 4: '₄', 5: '₅', 6: '₆', 7: '₇', 8: '₈', 9: '₉' };\nconst CMD = {\n  times: '×', cdot: '·', div: '÷', le: '≤', leq: '≤', ge: '≥', geq: '≥', neq: '≠', approx: '≈',\n  sim: '~', pm: '±', implies: '⇒', Rightarrow: '⇒', rightarrow: '→', to: '→', infty: '∞',\n  lambda: 'λ', theta: 'θ', Delta: 'Δ', delta: 'δ', Sigma: 'Σ', sum: 'Σ', mu: 'µ', pi: 'π',\n  rho: 'ρ', alpha: 'α', beta: 'β', gamma: 'γ', eta: 'η', phi: 'φ', tau: 'τ', circ: '°',\n  degree: '°', quad: ' ', qquad: ' ', left: '', right: '', displaystyle: '', ldots: '…', dots: '…',\n};\nconst CMD_RE = new RegExp('\\\\\\\\(' + Object.keys(CMD).sort((a, b) => b.length - a.length).join('|') + ')', 'g');\n\nconst digitos = (txt, tabla) => [...txt].map((c) => tabla[c] || c).join('');\nconst agrupar = (x) => (/[\\s+\\-×·]/.test(x) ? '(' + x + ')' : x);\n\nfunction convertir(s) {\n  s = s.replace(/\\$\\$([\\s\\S]+?)\\$\\$/g, (_, m) => '\\n' + m.trim() + '\\n');\n  s = s.replace(/\\\\\\[([\\s\\S]+?)\\\\\\]/g, (_, m) => '\\n' + m.trim() + '\\n');\n  s = s.replace(/\\\\\\(([\\s\\S]+?)\\\\\\)/g, '$1');\n  s = s.replace(/\\$([^$\\n]+?)\\$/g, '$1');\n  // de dentro hacia fuera: \\text{}, subíndices con llaves, fracciones, raíces\n  for (let i = 0; i < 4; i++) {\n    s = s.replace(/\\\\(?:text|mathrm|mathbf|textbf|mathit|textit|operatorname|boldsymbol)\\s*\\{([^{}]*)\\}/g, '$1');\n    s = s.replace(/_\\{([0-9]+)\\}/g, (_, a) => digitos(a, SUB));\n    s = s.replace(/_\\{([^{}]*)\\}/g, '_$1');\n    s = s.replace(/\\^\\s*(?:\\{\\s*\\\\circ\\s*\\}|\\\\circ)/g, '°');\n    s = s.replace(/\\^\\{([0-9+\\-]+)\\}/g, (_, a) => digitos(a, SUP));\n    s = s.replace(/\\\\frac\\s*\\{([^{}]*)\\}\\s*\\{([^{}]*)\\}/g, (_, a, b) => agrupar(a) + ' / ' + agrupar(b));\n    s = s.replace(/\\\\sqrt\\s*\\{([^{}]*)\\}/g, '√($1)');\n  }\n  s = s.replace(/\\^([0-9])/g, (_, a) => SUP[a]);\n  s = s.replace(/\\^\\{([^{}]*)\\}/g, '^($1)');\n  s = s.replace(/_([0-9])(?![0-9])/g, (_, a) => SUB[a]);\n  s = s.replace(/\\{,\\}/g, ',');\n  s = s.replace(/\\\\([%$#&_])/g, '$1');\n  s = s.replace(/\\\\[,;:! ]/g, ' ');\n  s = s.replace(CMD_RE, (_, c) => CMD[c]);\n  s = s.replace(/\\\\([a-zA-Z]+)/g, '$1');\n  s = s.replace(/(\\S) {2,}(?=\\S)/g, '$1 ');\n  return s;\n}\n\nfunction limpiar(texto) {\n  if (typeof texto !== 'string') return texto;\n  // separa bloques de código y código en línea; solo convierte el resto\n  return texto\n    .split(/(```[\\s\\S]*?(?:```|$)|`[^`\\n]*`)/g)\n    .map((parte, i) => (i % 2 === 1 ? parte : convertir(parte)))\n    .join('');\n}\n\n// --- n8n ---\nif (typeof $input !== 'undefined') {\n  return $input.all().map((item) => ({ json: { ...item.json, output: limpiar(item.json.output) } }));\n}\n"
+      },
+      "id": "b4000000-0000-4000-8000-000000000040",
+      "name": "Limpiar formato",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        0
+      ],
+      "notes": "Convierte LaTeX a texto Unicode antes de mostrar la respuesta en el chat."
+    },
+    {
+      "parameters": {
+        "name": "generar_excel",
+        "description": "Genera el Excel (.xlsx) de la memoria de cálculo con fórmulas reales entre hojas y devuelve un enlace de descarga. Úsala SOLO cuando el usuario pida el Excel.\nEntrada: UN objeto JSON (sin texto adicional) con esta forma:\n{\"proyecto\":\"PTAR DEL CARMEN\",\n \"datos\":[{\"id\":\"Q_med\",\"parametro\":\"Caudal medio\",\"valor\":150,\"unidad\":\"m³/d\",\"fuente\":\"Dato del usuario\"}, ...],\n \"calculos\":[{\"id\":\"V_an\",\"seccion\":\"Laguna anaerobia\",\"parametro\":\"Volumen útil\",\"ecuacion\":\"V = Q × TRH\",\"formula\":\"{Q_med}*{TRH_an}\",\"resultado\":3000,\"unidad\":\"m³\",\"min\":null,\"max\":null,\"cita\":\"M1 Vol. 2, Tabla 10-20, p. 733\"}, ...],\n \"infraestructura\":[{\"unidad\":\"Laguna anaerobia\",\"cantidad\":\"{N_an}\",\"largo\":\"{L_an}\",\"ancho\":\"{W_an}\",\"profundidad\":\"{H_an}\",\"area\":\"{A_an}\",\"volumen\":\"{V_an}\",\"material\":\"Geomembrana HDPE 1,5 mm\"}, ...],\n \"equipos\":[{\"equipo\":\"Reja manual\",\"tipo\":\"Pletina de acero\",\"cantidad\":1,\"caracteristica\":\"Separación libre\",\"valor\":\"{b_reja}\",\"unidad\":\"mm\",\"nota\":\"...\"}, ...]}\nReglas:\n- \"datos\": TODOS los valores de entrada y criterios adoptados (caudales, calidades, TRH, profundidades, cargas, coeficientes). Solo números en \"valor\".\n- \"calculos\": TODOS los pasos de la memoria en orden. \"formula\" es una fórmula de Excel en INGLÉS (IF, SQRT, ROUNDUP, MAX, PI...), separador de argumentos coma y punto decimal; referencia otros valores SOLO con {id} de \"datos\" o de \"calculos\", nunca con números copiados de otro paso. \"resultado\" = valor numérico que obtuviste. \"min\"/\"max\" = rango del manual para verificar (o null).\n- Incluye como cálculos las verificaciones (carga superficial, TRH resultante, velocidades...) con su min/max, para que el Excel marque ⚠.\n- \"infraestructura\" y \"equipos\": cada valor puede ser número, texto, \"{id}\" o una fórmula que empiece por \"=\" con {id}.\n- ids: solo letras, números y _, sin repetir.\nSi la respuesta empieza por \"ERROR\", corrige lo indicado y vuelve a llamar (máximo 3 intentos). Si empieza por \"OK\", entrega al usuario el enlace de descarga tal cual.",
+        "source": "parameter",
+        "workflowJson": "{\n \"name\": \"generar_excel (subflujo)\",\n \"nodes\": [\n  {\n   \"parameters\": {\n    \"inputSource\": \"passthrough\"\n   },\n   \"id\": \"f0e3365d-1ba3-481a-8f8a-7e4b706cdb0d\",\n   \"name\": \"Entrada\",\n   \"type\": \"n8n-nodes-base.executeWorkflowTrigger\",\n   \"typeVersion\": 1.1,\n   \"position\": [\n    0,\n    0\n   ]\n  },\n  {\n   \"parameters\": {\n    \"jsCode\": \"// Nodo Code de n8n \\\"Construir xlsx\\\" (subflujo de la herramienta generar_excel).\\n// Recibe en $json.query un JSON con la memoria de cálculo y arma un .xlsx con\\n// fórmulas reales entre hojas. Está escrito sin librerías externas: un .xlsx es\\n// un ZIP de archivos XML, y aquí se empaqueta sin compresión (método STORE).\\n//\\n// Formato de entrada (los \\\"{id}\\\" en las fórmulas se sustituyen por la celda\\n// absoluta de ese parámetro, p. ej. {Q_med} -> 'Datos de entrada'!$D$4):\\n// {\\n//   \\\"proyecto\\\": \\\"PTAR DEL CARMEN\\\",\\n//   \\\"datos\\\":   [{\\\"id\\\":\\\"Q_med\\\",\\\"parametro\\\":\\\"Caudal medio\\\",\\\"valor\\\":150,\\\"unidad\\\":\\\"m³/d\\\",\\\"fuente\\\":\\\"Dato del usuario\\\"}],\\n//   \\\"calculos\\\":[{\\\"id\\\":\\\"V_an\\\",\\\"seccion\\\":\\\"Laguna anaerobia\\\",\\\"parametro\\\":\\\"Volumen útil\\\",\\n//                \\\"ecuacion\\\":\\\"V = Q × TRH\\\",\\\"formula\\\":\\\"{Q_med}*{TRH_an}\\\",\\\"resultado\\\":3000,\\n//                \\\"unidad\\\":\\\"m³\\\",\\\"min\\\":20,\\\"max\\\":50,\\\"cita\\\":\\\"M1 Vol. 2, Tabla 10-20, p. 733\\\"}],\\n//   \\\"infraestructura\\\":[{\\\"unidad\\\":\\\"Laguna anaerobia\\\",\\\"cantidad\\\":2,\\\"largo\\\":\\\"{L_an}\\\",\\\"ancho\\\":\\\"{W_an}\\\",\\n//                \\\"profundidad\\\":\\\"{H_an}\\\",\\\"volumen\\\":\\\"{V_an}\\\",\\\"area\\\":\\\"{A_an}\\\",\\\"material\\\":\\\"Geomembrana HDPE\\\"}],\\n//   \\\"equipos\\\":[{\\\"equipo\\\":\\\"Reja manual\\\",\\\"tipo\\\":\\\"Barras 1/4\\\\\\\"\\\",\\\"cantidad\\\":1,\\\"caracteristica\\\":\\\"Separación\\\",\\n//                \\\"valor\\\":\\\"{b_reja}\\\",\\\"unidad\\\":\\\"mm\\\",\\\"nota\\\":\\\"Acero inoxidable\\\"}]\\n// }\\n\\nconst HOJAS = ['Datos de entrada', 'Memoria de cálculo', 'Resumen de infraestructura', 'Equipos'];\\n\\n// ---------- utilidades XML / celdas ----------\\nconst esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\\\"/g, '&quot;');\\nconst col = (n) => { let s = ''; for (n++; n > 0; n = Math.floor((n - 1) / 26)) s = String.fromCharCode(65 + ((n - 1) % 26)) + s; return s; };\\nconst ref = (hoja, c, f) => `'${hoja}'!$${col(c)}$${f}`;\\nconst esNum = (v) => typeof v === 'number' && isFinite(v);\\n\\nfunction celda(c, f, v, estilo, extra = {}) {\\n  const r = col(c) + f;\\n  if (extra.formula) {\\n    const cache = extra.cache;\\n    if (typeof cache === 'string') return `<c r=\\\"${r}\\\" s=\\\"${estilo}\\\" t=\\\"str\\\"><f>${esc(extra.formula)}</f><v>${esc(cache)}</v></c>`;\\n    return `<c r=\\\"${r}\\\" s=\\\"${estilo}\\\"><f>${esc(extra.formula)}</f>${esNum(cache) ? `<v>${cache}</v>` : ''}</c>`;\\n  }\\n  if (v === null || v === undefined || v === '') return `<c r=\\\"${r}\\\" s=\\\"${estilo}\\\"/>`;\\n  if (esNum(v)) return `<c r=\\\"${r}\\\" s=\\\"${estilo}\\\"><v>${v}</v></c>`;\\n  return `<c r=\\\"${r}\\\" s=\\\"${estilo}\\\" t=\\\"inlineStr\\\"><is><t xml:space=\\\"preserve\\\">${esc(v)}</t></is></c>`;\\n}\\n\\nfunction hojaXml(filas, anchos, combinadas = [], congelar = 0) {\\n  const cols = anchos.map((w, i) => `<col min=\\\"${i + 1}\\\" max=\\\"${i + 1}\\\" width=\\\"${w}\\\" customWidth=\\\"1\\\"/>`).join('');\\n  const pane = congelar ? `<sheetViews><sheetView workbookViewId=\\\"0\\\"><pane ySplit=\\\"${congelar}\\\" topLeftCell=\\\"A${congelar + 1}\\\" activePane=\\\"bottomLeft\\\" state=\\\"frozen\\\"/></sheetView></sheetViews>` : '';\\n  const datos = filas.map(([f, celdas]) => `<row r=\\\"${f}\\\">${celdas.join('')}</row>`).join('');\\n  const merge = combinadas.length ? `<mergeCells count=\\\"${combinadas.length}\\\">${combinadas.map((m) => `<mergeCell ref=\\\"${m}\\\"/>`).join('')}</mergeCells>` : '';\\n  return `<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?><worksheet xmlns=\\\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\\\">${pane}<cols>${cols}</cols><sheetData>${datos}</sheetData>${merge}</worksheet>`;\\n}\\n\\n// estilos: 0 normal | 1 título | 2 encabezado | 3 texto con borde | 4 número | 5 dato de entrada\\n//          6 sección | 7 verificación | 8 texto ajustado | 9 total\\nconst ESTILOS = `<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?>\\n<styleSheet xmlns=\\\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\\\">\\n<numFmts count=\\\"1\\\"><numFmt numFmtId=\\\"164\\\" formatCode=\\\"#,##0.00\\\"/></numFmts>\\n<fonts count=\\\"4\\\"><font><sz val=\\\"10\\\"/><name val=\\\"Arial\\\"/></font><font><b/><sz val=\\\"14\\\"/><color rgb=\\\"FF1F4E79\\\"/><name val=\\\"Arial\\\"/></font><font><b/><sz val=\\\"10\\\"/><color rgb=\\\"FFFFFFFF\\\"/><name val=\\\"Arial\\\"/></font><font><b/><sz val=\\\"10\\\"/><name val=\\\"Arial\\\"/></font></fonts>\\n<fills count=\\\"6\\\"><fill><patternFill patternType=\\\"none\\\"/></fill><fill><patternFill patternType=\\\"gray125\\\"/></fill><fill><patternFill patternType=\\\"solid\\\"><fgColor rgb=\\\"FF1F4E79\\\"/></patternFill></fill><fill><patternFill patternType=\\\"solid\\\"><fgColor rgb=\\\"FFFFF2CC\\\"/></patternFill></fill><fill><patternFill patternType=\\\"solid\\\"><fgColor rgb=\\\"FFDDEBF7\\\"/></patternFill></fill><fill><patternFill patternType=\\\"solid\\\"><fgColor rgb=\\\"FFE2EFDA\\\"/></patternFill></fill></fills>\\n<borders count=\\\"2\\\"><border/><border><left style=\\\"thin\\\"><color rgb=\\\"FFBFBFBF\\\"/></left><right style=\\\"thin\\\"><color rgb=\\\"FFBFBFBF\\\"/></right><top style=\\\"thin\\\"><color rgb=\\\"FFBFBFBF\\\"/></top><bottom style=\\\"thin\\\"><color rgb=\\\"FFBFBFBF\\\"/></bottom></border></borders>\\n<cellStyleXfs count=\\\"1\\\"><xf/></cellStyleXfs>\\n<cellXfs count=\\\"10\\\">\\n<xf/>\\n<xf fontId=\\\"1\\\" applyFont=\\\"1\\\"/>\\n<xf fontId=\\\"2\\\" fillId=\\\"2\\\" borderId=\\\"1\\\" applyFont=\\\"1\\\" applyFill=\\\"1\\\" applyBorder=\\\"1\\\" applyAlignment=\\\"1\\\"><alignment horizontal=\\\"center\\\" vertical=\\\"center\\\" wrapText=\\\"1\\\"/></xf>\\n<xf borderId=\\\"1\\\" applyBorder=\\\"1\\\" applyAlignment=\\\"1\\\"><alignment vertical=\\\"center\\\"/></xf>\\n<xf numFmtId=\\\"164\\\" borderId=\\\"1\\\" applyNumberFormat=\\\"1\\\" applyBorder=\\\"1\\\"/>\\n<xf numFmtId=\\\"164\\\" fillId=\\\"3\\\" borderId=\\\"1\\\" applyNumberFormat=\\\"1\\\" applyFill=\\\"1\\\" applyBorder=\\\"1\\\"/>\\n<xf fontId=\\\"3\\\" fillId=\\\"4\\\" borderId=\\\"1\\\" applyFont=\\\"1\\\" applyFill=\\\"1\\\" applyBorder=\\\"1\\\"/>\\n<xf fontId=\\\"3\\\" borderId=\\\"1\\\" applyFont=\\\"1\\\" applyBorder=\\\"1\\\" applyAlignment=\\\"1\\\"><alignment horizontal=\\\"center\\\"/></xf>\\n<xf borderId=\\\"1\\\" applyBorder=\\\"1\\\" applyAlignment=\\\"1\\\"><alignment vertical=\\\"center\\\" wrapText=\\\"1\\\"/></xf>\\n<xf numFmtId=\\\"164\\\" fontId=\\\"3\\\" fillId=\\\"5\\\" borderId=\\\"1\\\" applyNumberFormat=\\\"1\\\" applyFont=\\\"1\\\" applyFill=\\\"1\\\" applyBorder=\\\"1\\\"/>\\n</cellXfs></styleSheet>`;\\n\\n// ---------- ZIP sin compresión ----------\\nconst CRC = (() => { const t = []; for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();\\nconst crc32 = (b) => { let c = 0xffffffff; for (let i = 0; i < b.length; i++) c = CRC[(c ^ b[i]) & 0xff] ^ (c >>> 8); return (c ^ 0xffffffff) >>> 0; };\\n\\nfunction zip(archivos) {\\n  const partes = [], central = [];\\n  let offset = 0;\\n  for (const [nombre, contenido] of archivos) {\\n    const n = Buffer.from(nombre, 'utf8'), d = Buffer.from(contenido, 'utf8'), crc = crc32(d);\\n    const loc = Buffer.alloc(30);\\n    loc.writeUInt32LE(0x04034b50, 0); loc.writeUInt16LE(20, 4); loc.writeUInt16LE(0x0800, 6);\\n    loc.writeUInt32LE(crc, 14); loc.writeUInt32LE(d.length, 18); loc.writeUInt32LE(d.length, 22); loc.writeUInt16LE(n.length, 26);\\n    const cen = Buffer.alloc(46);\\n    cen.writeUInt32LE(0x02014b50, 0); cen.writeUInt16LE(20, 4); cen.writeUInt16LE(20, 6); cen.writeUInt16LE(0x0800, 8);\\n    cen.writeUInt32LE(crc, 16); cen.writeUInt32LE(d.length, 20); cen.writeUInt32LE(d.length, 24); cen.writeUInt16LE(n.length, 28); cen.writeUInt32LE(offset, 42);\\n    partes.push(loc, n, d); central.push(cen, n);\\n    offset += 30 + n.length + d.length;\\n  }\\n  const tam = central.reduce((s, b) => s + b.length, 0), fin = Buffer.alloc(22);\\n  fin.writeUInt32LE(0x06054b50, 0); fin.writeUInt16LE(archivos.length, 8); fin.writeUInt16LE(archivos.length, 10);\\n  fin.writeUInt32LE(tam, 12); fin.writeUInt32LE(offset, 16);\\n  return Buffer.concat([...partes, ...central, fin]);\\n}\\n\\n// ---------- construcción del libro ----------\\nfunction construir(spec) {\\n  const errores = [];\\n  const datos = Array.isArray(spec.datos) ? spec.datos : [];\\n  const calculos = Array.isArray(spec.calculos) ? spec.calculos : [];\\n  if (!datos.length) errores.push('Falta \\\"datos\\\" (lista de parámetros de entrada).');\\n  if (!calculos.length) errores.push('Falta \\\"calculos\\\" (pasos de la memoria de cálculo).');\\n\\n  // 1) posición de cada id\\n  const celdaDe = {}, cacheDe = {};\\n  const registrar = (id, r, cache) => {\\n    if (!id) return;\\n    if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(id)) errores.push(`id no válido \\\"${id}\\\" (solo letras, números y _).`);\\n    if (celdaDe[id]) errores.push(`id repetido \\\"${id}\\\".`);\\n    celdaDe[id] = r; cacheDe[id] = cache;\\n  };\\n  datos.forEach((d, i) => registrar(d.id, ref(HOJAS[0], 3, 4 + i), d.valor));\\n  let fila = 4, seccion = null;\\n  const filaCalc = calculos.map((c) => {\\n    if ((c.seccion || '') !== seccion) { seccion = c.seccion || ''; fila++; }\\n    registrar(c.id, ref(HOJAS[1], 5, fila), c.resultado);\\n    return fila++;\\n  });\\n\\n  // 2) traducción de fórmulas\\n  const traducir = (formula, donde) => {\\n    let f = String(formula).trim().replace(/^=/, '');\\n    f = f.replace(/\\\\{([^{}]+)\\\\}/g, (m, id) => {\\n      if (!celdaDe[id.trim()]) { errores.push(`${donde}: id desconocido {${id}}.`); return '0'; }\\n      return celdaDe[id.trim()];\\n    });\\n    return f;\\n  };\\n  const valorCelda = (c, f, v, estilo, donde) => {\\n    if (typeof v === 'string' && /^\\\\s*\\\\{[A-Za-z0-9_]+\\\\}\\\\s*$/.test(v)) {\\n      const id = v.trim().slice(1, -1);\\n      return celda(c, f, null, 4, { formula: traducir(v, donde), cache: cacheDe[id] });\\n    }\\n    if (typeof v === 'string' && v.trim().startsWith('=')) return celda(c, f, null, 4, { formula: traducir(v, donde) });\\n    return celda(c, f, v, esNum(v) ? 4 : estilo);\\n  };\\n\\n  // Hoja 1: Datos de entrada\\n  const h1 = [[1, [celda(0, 1, `${spec.proyecto || 'Proyecto'} — Datos de entrada`, 1)]],\\n    [2, [celda(0, 2, 'Única fuente de verdad: si cambia un valor amarillo, todo el libro se recalcula.', 0)]],\\n    [3, ['Ítem', 'ID', 'Parámetro', 'Valor', 'Unidad', 'Fuente / cita'].map((t, c) => celda(c, 3, t, 2))]];\\n  datos.forEach((d, i) => {\\n    const f = 4 + i;\\n    h1.push([f, [celda(0, f, i + 1, 3), celda(1, f, d.id, 3), celda(2, f, d.parametro, 8),\\n      esNum(d.valor) ? celda(3, f, d.valor, 5) : celda(3, f, d.valor, 3), celda(4, f, d.unidad, 3), celda(5, f, d.fuente || d.cita, 8)]]);\\n  });\\n\\n  // Hoja 2: Memoria de cálculo\\n  const h2 = [[1, [celda(0, 1, `${spec.proyecto || 'Proyecto'} — Memoria de cálculo`, 1)]],\\n    [3, ['N°', 'Unidad de proceso', 'ID', 'Parámetro', 'Ecuación (notación estándar)', 'Resultado', 'Unidad', 'Mín. manual', 'Máx. manual', 'Verificación', 'Cita'].map((t, c) => celda(c, 3, t, 2))]];\\n  const merges2 = [];\\n  seccion = null;\\n  const filasVerif = [];\\n  let avisos = 0;\\n  calculos.forEach((c, i) => {\\n    const f = filaCalc[i];\\n    if ((c.seccion || '') !== seccion) {\\n      seccion = c.seccion || '';\\n      h2.push([f - 1, [celda(0, f - 1, seccion || 'General', 6), ...Array.from({ length: 10 }, (_, k) => celda(k + 1, f - 1, '', 6))]]);\\n      merges2.push(`A${f - 1}:K${f - 1}`);\\n    }\\n    const res = c.formula ? celda(5, f, null, 4, { formula: traducir(c.formula, `calculos.${c.id || i}`), cache: c.resultado })\\n      : celda(5, f, c.resultado, 4);\\n    if (!c.formula) errores.push(`calculos.${c.id || i}: falta \\\"formula\\\" (ninguna celda de resultado puede ser un número fijo).`);\\n    const hayMin = esNum(c.min), hayMax = esNum(c.max), F = `F${f}`;\\n    let verif = celda(9, f, '—', 7);\\n    if (hayMin || hayMax) {\\n      const cond = hayMin && hayMax ? `AND(${F}>=H${f},${F}<=I${f})` : hayMin ? `${F}>=H${f}` : `${F}<=I${f}`;\\n      const ok = esNum(c.resultado) ? (!hayMin || c.resultado >= c.min) && (!hayMax || c.resultado <= c.max) : true;\\n      if (!ok) avisos++;\\n      verif = celda(9, f, null, 7, { formula: `IF(${cond},\\\"✓\\\",\\\"⚠ fuera de rango\\\")`, cache: ok ? '✓' : '⚠ fuera de rango' });\\n      filasVerif.push(f);\\n    }\\n    h2.push([f, [celda(0, f, i + 1, 3), celda(1, f, c.seccion, 3), celda(2, f, c.id, 3), celda(3, f, c.parametro, 8),\\n      celda(4, f, c.ecuacion, 8), res, celda(6, f, c.unidad, 3), celda(7, f, hayMin ? c.min : '', hayMin ? 4 : 3),\\n      celda(8, f, hayMax ? c.max : '', hayMax ? 4 : 3), verif, celda(10, f, c.cita, 8)]]);\\n  });\\n  const ultima = filaCalc.length ? filaCalc[filaCalc.length - 1] : 4, fv = ultima + 2;\\n  const rango = `J4:J${ultima}`;\\n  h2.push([fv, [celda(0, fv, 'Verificación global', 9), ...Array.from({ length: 8 }, (_, k) => celda(k + 1, fv, '', 9)),\\n    celda(9, fv, null, 9, { formula: `IF(COUNTIF(${rango},\\\"⚠*\\\")=0,\\\"✓ Cálculo consistente\\\",\\\"⚠ Revisar \\\"&COUNTIF(${rango},\\\"⚠*\\\")&\\\" parámetro(s) fuera de rango\\\")`,\\n      cache: avisos ? `⚠ Revisar ${avisos} parámetro(s) fuera de rango` : '✓ Cálculo consistente' }), celda(10, fv, '', 9)]]);\\n  merges2.push(`A${fv}:I${fv}`);\\n\\n  // Hoja 3: Resumen de infraestructura\\n  const infra = Array.isArray(spec.infraestructura) ? spec.infraestructura : [];\\n  const camposI = ['unidad', 'cantidad', 'largo', 'ancho', 'profundidad', 'area', 'volumen', 'material'];\\n  const h3 = [[1, [celda(0, 1, `${spec.proyecto || 'Proyecto'} — Resumen de infraestructura`, 1)]],\\n    [3, ['Unidad', 'Cantidad', 'Largo (m)', 'Ancho (m)', 'Profundidad (m)', 'Área (m²)', 'Volumen (m³)', 'Material / notas'].map((t, c) => celda(c, 3, t, 2))]];\\n  infra.forEach((u, i) => { const f = 4 + i; h3.push([f, camposI.map((k, c) => valorCelda(c, f, u[k], c === 7 ? 8 : 3, `infraestructura.${i}.${k}`))]); });\\n  if (infra.length) {\\n    const ft = 4 + infra.length;\\n    h3.push([ft, [celda(0, ft, 'TOTAL', 9), celda(1, ft, null, 9, { formula: `SUM(B4:B${ft - 1})` }), ...[2, 3, 4].map((c) => celda(c, ft, '', 9)),\\n      celda(5, ft, null, 9, { formula: `SUMPRODUCT(B4:B${ft - 1},F4:F${ft - 1})` }), celda(6, ft, null, 9, { formula: `SUMPRODUCT(B4:B${ft - 1},G4:G${ft - 1})` }), celda(7, ft, 'Área y volumen totales = cantidad × unitario', 9)]]);\\n  }\\n\\n  // Hoja 4: Equipos\\n  const eq = Array.isArray(spec.equipos) ? spec.equipos : [];\\n  const camposE = ['equipo', 'tipo', 'cantidad', 'caracteristica', 'valor', 'unidad', 'nota'];\\n  const h4 = [[1, [celda(0, 1, `${spec.proyecto || 'Proyecto'} — Equipos`, 1)]],\\n    [3, ['Equipo', 'Tipo', 'Cantidad', 'Característica', 'Valor', 'Unidad', 'Nota'].map((t, c) => celda(c, 3, t, 2))]];\\n  eq.forEach((e, i) => { const f = 4 + i; h4.push([f, camposE.map((k, c) => valorCelda(c, f, e[k], c === 6 ? 8 : 3, `equipos.${i}.${k}`))]); });\\n\\n  if (errores.length) return { errores };\\n\\n  const sheets = [\\n    hojaXml(h1, [6, 14, 42, 14, 12, 50], ['A1:F1', 'A2:F2'], 3),\\n    hojaXml(h2, [5, 22, 12, 34, 36, 14, 11, 11, 11, 18, 44], ['A1:K1', ...merges2], 3),\\n    hojaXml(h3, [28, 10, 11, 11, 14, 13, 14, 40], ['A1:H1'], 3),\\n    hojaXml(h4, [26, 22, 10, 26, 13, 10, 40], ['A1:G1'], 3),\\n  ];\\n  const ct = `<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?><Types xmlns=\\\"http://schemas.openxmlformats.org/package/2006/content-types\\\"><Default Extension=\\\"rels\\\" ContentType=\\\"application/vnd.openxmlformats-package.relationships+xml\\\"/><Default Extension=\\\"xml\\\" ContentType=\\\"application/xml\\\"/><Override PartName=\\\"/xl/workbook.xml\\\" ContentType=\\\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\\\"/><Override PartName=\\\"/xl/styles.xml\\\" ContentType=\\\"application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml\\\"/>${sheets.map((_, i) => `<Override PartName=\\\"/xl/worksheets/sheet${i + 1}.xml\\\" ContentType=\\\"application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml\\\"/>`).join('')}</Types>`;\\n  const rels = `<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?><Relationships xmlns=\\\"http://schemas.openxmlformats.org/package/2006/relationships\\\"><Relationship Id=\\\"rId1\\\" Type=\\\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\\\" Target=\\\"xl/workbook.xml\\\"/></Relationships>`;\\n  const wb = `<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?><workbook xmlns=\\\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\\\" xmlns:r=\\\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\\\"><sheets>${HOJAS.map((n, i) => `<sheet name=\\\"${esc(n)}\\\" sheetId=\\\"${i + 1}\\\" r:id=\\\"rId${i + 1}\\\"/>`).join('')}</sheets><calcPr calcId=\\\"191029\\\" fullCalcOnLoad=\\\"1\\\"/></workbook>`;\\n  const wbRels = `<?xml version=\\\"1.0\\\" encoding=\\\"UTF-8\\\" standalone=\\\"yes\\\"?><Relationships xmlns=\\\"http://schemas.openxmlformats.org/package/2006/relationships\\\">${sheets.map((_, i) => `<Relationship Id=\\\"rId${i + 1}\\\" Type=\\\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet\\\" Target=\\\"worksheets/sheet${i + 1}.xml\\\"/>`).join('')}<Relationship Id=\\\"rId${sheets.length + 1}\\\" Type=\\\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles\\\" Target=\\\"styles.xml\\\"/></Relationships>`;\\n\\n  const buffer = zip([['[Content_Types].xml', ct], ['_rels/.rels', rels], ['xl/workbook.xml', wb], ['xl/_rels/workbook.xml.rels', wbRels],\\n    ['xl/styles.xml', ESTILOS], ...sheets.map((s, i) => [`xl/worksheets/sheet${i + 1}.xml`, s])]);\\n  return { buffer, avisos, n: { datos: datos.length, calculos: calculos.length, infra: infra.length, equipos: eq.length } };\\n}\\n\\nfunction nombreArchivo(proyecto) {\\n  const base = String(proyecto || 'memoria').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 60) || 'memoria';\\n  const d = new Date(), p = (x) => String(x).padStart(2, '0');\\n  return `${base}_${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.xlsx`;\\n}\\n\\nfunction ejecutar(query) {\\n  let spec;\\n  try {\\n    spec = typeof query === 'string' ? JSON.parse(query.replace(/^```(?:json)?\\\\s*|\\\\s*```$/g, '')) : query;\\n  } catch (e) {\\n    return { json: { ok: false, response: `ERROR: el argumento no es JSON válido (${e.message}). Envía un único objeto JSON con \\\"proyecto\\\", \\\"datos\\\", \\\"calculos\\\", \\\"infraestructura\\\" y \\\"equipos\\\".` } };\\n  }\\n  const r = construir(spec || {});\\n  if (r.errores) return { json: { ok: false, response: 'ERROR: corrige y vuelve a llamar a la herramienta:\\\\n- ' + r.errores.slice(0, 25).join('\\\\n- ') } };\\n  const archivo = nombreArchivo(spec.proyecto);\\n  return {\\n    json: { ok: true, archivo, avisos: r.avisos, resumen: r.n },\\n    binary: { data: { data: r.buffer.toString('base64'), mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', fileName: archivo, fileExtension: 'xlsx' } },\\n  };\\n}\\n\\n// --- n8n ---\\nif (typeof $input !== 'undefined') {\\n  return $input.all().map((item) => ejecutar(item.json.query));\\n}\\n\"\n   },\n   \"id\": \"21868b6e-0fa0-4bf4-a9e0-4147d73228cf\",\n   \"name\": \"Construir xlsx\",\n   \"type\": \"n8n-nodes-base.code\",\n   \"typeVersion\": 2,\n   \"position\": [\n    220,\n    0\n   ]\n  },\n  {\n   \"parameters\": {\n    \"conditions\": {\n     \"options\": {\n      \"caseSensitive\": true,\n      \"leftValue\": \"\",\n      \"typeValidation\": \"loose\",\n      \"version\": 2\n     },\n     \"conditions\": [\n      {\n       \"id\": \"671db57d-6a10-466a-bc44-ce035dcbc366\",\n       \"leftValue\": \"={{ $json.ok }}\",\n       \"rightValue\": \"\",\n       \"operator\": {\n        \"type\": \"boolean\",\n        \"operation\": \"true\",\n        \"singleValue\": true\n       }\n      }\n     ],\n     \"combinator\": \"and\"\n    },\n    \"options\": {}\n   },\n   \"id\": \"82ecb0d5-ead8-4c8c-89a2-4097f031b035\",\n   \"name\": \"¿Sin errores?\",\n   \"type\": \"n8n-nodes-base.if\",\n   \"typeVersion\": 2.2,\n   \"position\": [\n    440,\n    0\n   ]\n  },\n  {\n   \"parameters\": {\n    \"operation\": \"write\",\n    \"fileName\": \"=C:/Users/Usuario/Documents/PROYECTOS/DIMENSIONAMIENTO DE PLANTAS/RAG/salidas/{{ $json.archivo }}\",\n    \"dataPropertyName\": \"data\",\n    \"options\": {}\n   },\n   \"id\": \"2daf42cb-f1f7-48ff-ac95-3d75785d4b16\",\n   \"name\": \"Guardar en RAG/salidas\",\n   \"type\": \"n8n-nodes-base.readWriteFile\",\n   \"typeVersion\": 1,\n   \"position\": [\n    660,\n    -100\n   ]\n  },\n  {\n   \"parameters\": {\n    \"jsCode\": \"const j = $('Construir xlsx').first().json;\\nconst url = 'http://localhost:5678/webhook/descargar-excel?archivo=' + j.archivo;\\nreturn [{ json: { response:\\n  `OK: Excel generado \\\"${j.archivo}\\\" (${j.resumen.datos} datos, ${j.resumen.calculos} cálculos, ${j.resumen.infra} unidades, ${j.resumen.equipos} equipos; ${j.avisos} verificación(es) fuera de rango).\\\\n` +\\n  `Enlace de descarga para el usuario (muéstralo tal cual, en Markdown): [Descargar ${j.archivo}](${url})\\\\n` +\\n  `Copia local: RAG\\\\\\\\salidas\\\\\\\\${j.archivo}` } }];\"\n   },\n   \"id\": \"5eb7e8aa-5f4e-4235-91c4-790d4912a118\",\n   \"name\": \"Respuesta OK\",\n   \"type\": \"n8n-nodes-base.code\",\n   \"typeVersion\": 2,\n   \"position\": [\n    880,\n    -100\n   ]\n  },\n  {\n   \"parameters\": {\n    \"jsCode\": \"return [{ json: { response: $json.response } }];\"\n   },\n   \"id\": \"fe07e200-22eb-4c3d-81ec-d5a868def12e\",\n   \"name\": \"Respuesta error\",\n   \"type\": \"n8n-nodes-base.code\",\n   \"typeVersion\": 2,\n   \"position\": [\n    660,\n    100\n   ]\n  }\n ],\n \"connections\": {\n  \"Entrada\": {\n   \"main\": [\n    [\n     {\n      \"node\": \"Construir xlsx\",\n      \"type\": \"main\",\n      \"index\": 0\n     }\n    ]\n   ]\n  },\n  \"Construir xlsx\": {\n   \"main\": [\n    [\n     {\n      \"node\": \"¿Sin errores?\",\n      \"type\": \"main\",\n      \"index\": 0\n     }\n    ]\n   ]\n  },\n  \"¿Sin errores?\": {\n   \"main\": [\n    [\n     {\n      \"node\": \"Guardar en RAG/salidas\",\n      \"type\": \"main\",\n      \"index\": 0\n     }\n    ],\n    [\n     {\n      \"node\": \"Respuesta error\",\n      \"type\": \"main\",\n      \"index\": 0\n     }\n    ]\n   ]\n  },\n  \"Guardar en RAG/salidas\": {\n   \"main\": [\n    [\n     {\n      \"node\": \"Respuesta OK\",\n      \"type\": \"main\",\n      \"index\": 0\n     }\n    ]\n   ]\n  }\n },\n \"settings\": {\n  \"executionOrder\": \"v1\"\n }\n}"
+      },
+      "id": "b4000000-0000-4000-8000-000000000050",
+      "name": "generar_excel",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1140,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "Chat": {
+      "main": [
+        [
+          {
+            "node": "Agente de dimensionamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Memoria (Postgres)": {
+      "ai_memory": [
+        [
+          {
+            "node": "Agente de dimensionamiento",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Ollama (bge-m3)": {
+      "ai_embedding": [
+        [
+          {
+            "node": "buscar_manual_PTARD",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "buscar_manual_UF",
+            "type": "ai_embedding",
+            "index": 0
+          },
+          {
+            "node": "buscar_manual_RO",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_manual_PTARD": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente de dimensionamiento",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_manual_UF": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente de dimensionamiento",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "buscar_manual_RO": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente de dimensionamiento",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude Sonnet 5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Agente de dimensionamiento",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agente de dimensionamiento": {
+      "main": [
+        [
+          {
+            "node": "Limpiar formato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "generar_excel": {
+      "ai_tool": [
+        [
+          {
+            "node": "Agente de dimensionamiento",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

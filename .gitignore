@@ -1,0 +1,22 @@
+# Manuales con derechos de autor: se mantienen solo en la PC local
+LIBROS/*.pdf
+LIBROS/*_texto_ocr.md
+RAG/chunks/*.json
+
+# Python
+__pycache__/
+*.pyc
+
+# Archivos temporales de Office / sistema
+~$*
+*.tmp
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Notas internas, scripts locales y resultados de casos (no públicos)
+RAG/RESUMEN_PARA_CONTINUAR.md
+RAG/iniciar_n8n.bat
+RESULTADOS/
+RAG/salidas/
+Claude outputs/
